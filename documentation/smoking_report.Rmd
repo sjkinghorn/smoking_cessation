@@ -7,17 +7,23 @@ output:
     number_sections: true
 fontsize: 11pt
 indent: true
-bibliography: hurricanes_references.bib
+bibliography: smoking_references.bib
 biblio-style: "amsplain"
 ---
 
 # Introduction
 
-The goal of this analysis is to determine the efficacy of two treatments, triple-combination therapy vs. patch only, in the time until relapse of smokers. 
+This project looks at the data produced by @steinberg2009 in their randomized clinical trial from 2005 to 2007. They collected data on 127 medically ill smokers for the purposes of studying two treatments for smoking cessation: nicotine patch alone or a triple-combination intervention consisting of nicotine patch, nicotine oral inhaler, and bupropion. The nicotine patch was administered over a 10 week tapering program, as described for the patch producers, while the triple-combination therapy was given as needed, with a focus on tapering. The examination period began with a target quit date and the administration of the therapies. There is a relatively high amount of censorship, with more than 25% of subjects lost to follow-up.
+
+The goal of my analysis is to determine the efficacy of the two treatments, patch only vs. triple-combination therapy, in the time until relapse of smokers. Since my focus is on time until relapse, this analysis will be constrained to a survival analysis where relapse is the event of interest. 
 
 # Data
 
+The data contains demographic and lifestyle information on each subject, like age, gender, race, employment, number of years smoking, level of smoking, number of attempts to quit, and longest period of time without smoking. The primary variable of interest is the group in which the subject was randomly assigned to treatment. Additionally, there are survival variables describing time until relapse and whether the observation was censored or not. 
+
 # EDA
+
+In this section I'll describe and visualize the data. 
 
 # Models
 
