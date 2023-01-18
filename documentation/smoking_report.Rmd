@@ -1,0 +1,36 @@
+---
+title: "Time Until Relapse Among Smokers"
+author: "Sam Kinghorn"
+date: "`r Sys.Date()`"
+output: 
+  pdf_document:
+    number_sections: true
+fontsize: 11pt
+indent: true
+bibliography: hurricanes_references.bib
+biblio-style: "amsplain"
+---
+
+# Introduction
+
+The goal of this analysis is to determine the efficacy of two treatments, triple-combination therapy vs. patch only, in the time until relapse of smokers. 
+
+# Data
+
+# EDA
+
+# Models
+
+# Results
+
+# Assumptions/Model Fit
+
+# Conclusion
+
+\newpage
+# References
+
+<div id="refs"></div>
+
+\newpage
+# Appendix
