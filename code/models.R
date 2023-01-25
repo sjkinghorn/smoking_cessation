@@ -1,6 +1,7 @@
 library(asaur)
 library(tidyverse)
 library(survival)
+library(ggfortify)
 data("pharmacoSmoking")
 smoking = pharmacoSmoking
 df = filter(smoking, ttr!=0)
@@ -11,21 +12,47 @@ Y = Surv(df$ttr, df$relapse==1)
 # intercept only
 kmfit1 = survfit(Y ~ 1)
 plot(kmfit1)
+autoplot(kmfit1) + 
+  labs(x = "\n Cessation Time (Days) ", y = "Survival Probabilities \n", 
+       title = "Cessation Times \n Of Smokers \n") + 
+  theme(plot.title = element_text(hjust = 0.5), 
+        axis.title.x = element_text(face="bold", size = 12),
+        axis.title.y = element_text(face="bold", size = 12))
 
 # treatment
 kmfit2 = survfit(Y ~ factor(grp), data=df)
+
 plot(kmfit2, lty = c('solid', 'dashed'), col=c('red', 'blue'),
      xlab='survival time in years', ylab='survival probabilities')
 legend('topright', c('Combination','Patch only'), lty=c('solid','dashed'),
        col=c('red', 'blue'), cex=.5)
+
+autoplot(kmfit2) + 
+  labs(x = "\n Cessation Time (Days) ", y = "Survival Probabilities \n", 
+       title = "Cessation Times \n Of Smokers \n") + 
+  theme(plot.title = element_text(hjust = 0.5), 
+        axis.title.x = element_text(face="bold", size = 12),
+        axis.title.y = element_text(face="bold", size = 12),
+        legend.title = element_text(face="bold", size = 10))
+
 survdiff(Y ~ factor(grp), data=df)
 
 # employment
 kmfit3 = survfit(Y ~ df$employment)
+
 plot(kmfit3, lty = c('solid', 'dashed', 'dotted'), col=c('black','red', 'blue'),
      xlab='survival time in years',ylab='survival probabilities')
 legend('topright', c('Full-time','Other', 'Part-time'), lty=c('solid','dashed', 'dotted'),
        col=c('black','red', 'blue'), cex=.5)
+
+autoplot(kmfit3) + 
+  labs(x = "\n Cessation Time (Days) ", y = "Survival Probabilities \n", 
+       title = "Cessation Times \n Of Smokers \n") + 
+  theme(plot.title = element_text(hjust = 0.5), 
+        axis.title.x = element_text(face="bold", size = 12),
+        axis.title.y = element_text(face="bold", size = 12),
+        legend.title = element_text(face="bold", size = 10))
+
 survdiff(Y ~ employment, data=df)
 
 # ph assumption

@@ -1,9 +1,11 @@
 library(asaur)
 library(tidyverse)
 library(survival)
+library(corrplot)
 data("pharmacoSmoking")
 smoking = pharmacoSmoking
 head(smoking)
+dim(smoking)
 
 # time
 ggplot(data=smoking, mapping=aes(x=ttr)) + 
@@ -12,13 +14,22 @@ ggplot(data=smoking, mapping=aes(x=ttr)) +
 table(smoking$ttr)
 view(arrange(smoking, ttr))
 count(filter(smoking, ttr==0))/count(smoking)
+count(filter(smoking, ttr==182))/count(smoking)
 count(filter(smoking, relapse==0))/count(smoking)
 
 # remove 0's
-df = filter(smoking, ttr!=0)
+# df = filter(smoking, ttr!=0)
+df = smoking
 
 # all censored observations at max relapse time
 arrange(df, desc(ttr))[1:40,1:3]
+
+conts = c('age', 'yearsSmoking', 'priorAttempts', 'longestNoSmoke')
+df_conts = df[unlist(conts)]
+M = cor(df_conts)
+testRes = cor.mtest(df_conts, conf.level = 0.95)
+corrplot(corr=M, p.mat = testRes$p, method = 'circle', type = 'lower', insig='blank',
+         addCoef.col ='black', number.cex = 0.8, order = 'AOE', diag=FALSE)
 
 # group assignment
 table(df$grp)

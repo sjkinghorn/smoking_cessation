@@ -15,7 +15,7 @@ biblio-style: "amsplain"
 
 This project looks at the data produced by @steinberg2009 in their randomized clinical trial from 2005 to 2007. They collected data on 127 medically ill smokers for the purposes of studying two treatments for smoking cessation: nicotine patch alone or a triple-combination intervention consisting of nicotine patch, nicotine oral inhaler, and bupropion. The nicotine patch was administered over a 10 week tapering program, as described for the patch producers, while the triple-combination therapy was given as needed, with a focus on tapering. The examination period began with a target quit date and the administration of the therapies. There is a relatively high amount of censorship, with more than 25% of subjects lost to follow-up.
 
-The goal of my analysis is to determine the efficacy of the two treatments, patch only vs. triple-combination therapy, in the time until relapse of smokers. Since my focus is on time until relapse, this analysis will be constrained to a survival analysis where relapse is the event of interest. 
+The goal of my analysis is to determine the efficacy of the two treatments, patch only vs. triple-combination therapy, in the time until relapse, or cessation time, of smokers. Since my focus is on time until relapse, this analysis will be constrained to a survival analysis where relapse is the event of interest. 
 
 # Data
 
@@ -23,7 +23,85 @@ The data contains demographic and lifestyle information on each subject, like ag
 
 # EDA
 
-In this section I'll describe and visualize the data. 
+In this section I'll describe and visualize the data. To start, let's look at the data itself.
+
+```{r}
+# packages
+library(asaur)
+library(tidyverse)
+library(survival)
+library(ggfortify)
+
+# load data
+data("pharmacoSmoking")
+smoking = pharmacoSmoking
+head(smoking)
+dim(smoking)
+```
+
+We can see the first six patients and their covariate patterns. There are a total of 125 observations with 11 features (not counting patient id, cessation time, and relapse status) that include a good mix of quantitative, qualitative, and ordinal variables. Next, I display the distribution of cessation times.
+
+```{r}
+# cessation times
+ggplot(data=smoking, mapping=aes(x=ttr)) + 
+  geom_histogram(bins=20) + labs(title="Distribution of time until relapse", 
+                                 x="time in days until relpase")
+table(smoking$ttr)
+count(filter(smoking, ttr==182))/count(smoking)
+count(filter(smoking, relapse==0))/count(smoking)
+count(filter(smoking, ttr==0))/count(smoking)
+```
+
+The distribution shows that in the first few days there were a lot of relapses, and the frequency gradually diminishes over 100 days. Also, there is a spike in the cessation time at the far end of the distribution. This spike represents 36 individuals, or 28% of the data, that made it to the end of the study window and were all censored, meaning we know that their cessation time is greater than 182 days. It's also worth noting that approximately 10% of the data had cessation times at 0. Next I display a handful of features.
+
+```{r}
+# group assignment
+table(smoking$grp)
+
+# age
+ggplot(data=smoking, mapping=aes(x=age)) + 
+  geom_histogram(bins=20) + labs(title="Distribution of age", 
+                                 x="age in years") + theme_minimal()
+
+# employment
+table(smoking$employment)
+ggplot(data=smoking, mapping=aes(x=employment)) + 
+  geom_bar() + labs(title="Bar plot of employment status") + theme_minimal()
+```
+
+Treatment assignments are about evenly split and there is a good distribution of ages in the study. From the bar plot on employment status, we can see that the majority of subjects are full time workers, followed by other then part time. Finally, we will look at the Kaplan-Meier survival curves. Before this, I remove all observations that have a failure time of 0. These observations probably relapsed within the first day of the study window, but their exact failure time is unknown. Since time 0 indicates the start of the study, when all subjects are in the risk set, it's not clear what a subject failing at time 0 would mean. There are some resources that describe this rationale here CITE.
+
+```{r}
+# remove time 0
+df = filter(smoking, ttr!=0)
+
+# create survival object
+Y = Surv(df$ttr, df$relapse==1)
+
+# intercept only
+kmfit1 = survfit(Y ~ 1)
+autoplot(kmfit1) + 
+  labs(x = "\n Cessation Time (Days) ", y = "Survival Probabilities \n", 
+       title = "Cessation Times \n Of Smokers \n") + 
+  theme(plot.title = element_text(hjust = 0.5), 
+        axis.title.x = element_text(face="bold", size = 12),
+        axis.title.y = element_text(face="bold", size = 12))
+
+# stratified by treatment
+kmfit2 = survfit(Y ~ factor(grp), data=df)
+autoplot(kmfit2) + 
+  labs(x = "\n Cessation Time (Days) ", y = "Survival Probabilities \n", 
+       title = "Cessation Times \n Of Smokers \n") + 
+  theme(plot.title = element_text(hjust = 0.5), 
+        axis.title.x = element_text(face="bold", size = 12),
+        axis.title.y = element_text(face="bold", size = 12),
+        legend.title = element_text(face="bold", size = 10))
+survdiff(Y ~ factor(grp), data=df)
+```
+
+The first graph shows the Kaplan-Meier survival curve for the entire data set. we can see that there is a steep decline in the early days of the study and the curve gradually flattens out. This means that initially, there was a high rate of relapse, then a decrease throughout the middle and end of the study. These observations agree with what we found in the distribution of cessation times. 
+
+The second graph shows the Kaplan-Meier survival curve stratified by treatment group. The curve for combination therapy is above the curve for patch only, indicating a longer cessation experience for the former. In other words, the patch only group had a shorter cessation time at every time point than the combination therapy. The median survival time for the combination group is 110 days, while the patch only group is 29. The code below the graph implements a log rank test on treatment group. This is a test to see if there is a significant difference in survival experience between the two groups. The null hypothesis is that there is no difference between survival curves. The test statistic is significant with a p-value of 0.009, so we reject the null hypothesis and conclude that there is a significant difference in the survival experience of the two treatment groups. 
 
 # Models
 
