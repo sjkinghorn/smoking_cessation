@@ -88,7 +88,16 @@ plot(cox.zph(model3, transform=rank), se=F, var='grp')
 # adjusted survival curve
 pattern1 = data.frame(grp='patchOnly', age=mean(df$age), employment='ft')
 plot(survfit(model3, newdata=pattern1), conf.int=F, 
-     main="Adjusted survival for grp=patchOnly, age=mean(age), employment=ft", cex.main=.7)
+     main="Adjusted survival for grp=patchOnly, age=mean(age), employment=ft", 
+     cex.main=.7)
+
+autoplot(survfit(model3, newdata=pattern1)) + 
+  labs(x = "\n Cessation Time (Days) ", y = "Survival Probabilities \n", 
+       title = "Adjusted survival for \n grp=patchOnly, age=mean(age), employment=ft \n") + 
+  theme(plot.title = element_text(hjust = 0.5), 
+        axis.title.x = element_text(face="bold", size = 12),
+        axis.title.y = element_text(face="bold", size = 12),
+        legend.title = element_text(face="bold", size = 10))
 
 # asses weibull assumption
 plot(survfit(Y ~ factor(grp), data=df),fun='cloglog',xlab='time in years using logarithmic
