@@ -25,13 +25,17 @@ The data contains demographic and lifestyle information on each subject, like ag
 
 In this section I'll describe and visualize the data. To start, let's look at the data itself.
 
-```{r}
+```{r message=FALSE, warning=FALSE}
 # packages
 library(asaur)
 library(tidyverse)
 library(survival)
 library(ggfortify)
+```
 
+\newpage
+
+```{r}
 # load data
 data("pharmacoSmoking")
 smoking = pharmacoSmoking
@@ -41,14 +45,25 @@ dim(smoking)
 
 We can see the first six patients and their covariate patterns. There are a total of 125 observations with 11 features (not counting patient id, cessation time, and relapse status) that include a good mix of quantitative, qualitative, and ordinal variables. Next, I display the distribution of cessation times.
 
+\newpage
+
 ```{r}
 # cessation times
 ggplot(data=smoking, mapping=aes(x=ttr)) + 
-  geom_histogram(bins=20) + labs(title="Distribution of time until relapse", 
-                                 x="time in days until relpase")
+  geom_histogram(bins=20) + labs(title="Distribution of time until relapse", x="time in days until relpase")
 table(smoking$ttr)
+```
+
+\newpage
+
+```{r}
+# proportion at the end
 count(filter(smoking, ttr==182))/count(smoking)
+
+# proportion censored
 count(filter(smoking, relapse==0))/count(smoking)
+
+# proportion at time 0
 count(filter(smoking, ttr==0))/count(smoking)
 ```
 
@@ -57,7 +72,11 @@ The distribution shows that in the first few days there were a lot of relapses, 
 ```{r}
 # group assignment
 table(smoking$grp)
+```
 
+\newpage
+
+```{r}
 # age
 ggplot(data=smoking, mapping=aes(x=age)) + 
   geom_histogram(bins=20) + labs(title="Distribution of age", 
@@ -65,11 +84,21 @@ ggplot(data=smoking, mapping=aes(x=age)) +
 
 # employment
 table(smoking$employment)
+```
+
+\newpage
+
+```{r}
+# bar plot employment
 ggplot(data=smoking, mapping=aes(x=employment)) + 
   geom_bar() + labs(title="Bar plot of employment status") + theme_minimal()
 ```
 
-Treatment assignments are about evenly split and there is a good distribution of ages in the study. From the bar plot on employment status, we can see that the majority of subjects are full time workers, followed by other then part time. Finally, we will look at the Kaplan-Meier survival curves. Before this, I remove all observations that have a failure time of 0. These observations probably relapsed within the first day of the study window, but their exact failure time is unknown. Since time 0 indicates the start of the study, when all subjects are in the risk set, it's not clear what a subject failing at time 0 would mean. There are some resources that describe this rationale here CITE.
+Treatment assignments are about evenly split and there is a good distribution of ages in the study. From the bar plot on employment status, we can see that the majority of subjects are full time workers, followed by other then part time. 
+
+\newpage
+
+Finally, we will look at the Kaplan-Meier survival curves. Before this, I remove all observations that have a failure time of 0. These observations probably relapsed within the first day of the study window, but their exact failure time is unknown. Since time 0 indicates the start of the study, when all subjects are in the risk set, it's not clear what a subject failing at time 0 would mean.
 
 ```{r}
 # remove time 0
@@ -86,7 +115,11 @@ autoplot(kmfit1) +
   theme(plot.title = element_text(hjust = 0.5), 
         axis.title.x = element_text(face="bold", size = 12),
         axis.title.y = element_text(face="bold", size = 12))
+```
 
+\newpage
+
+```{r}
 # stratified by treatment
 kmfit2 = survfit(Y ~ factor(grp), data=df)
 autoplot(kmfit2) + 
@@ -96,6 +129,12 @@ autoplot(kmfit2) +
         axis.title.x = element_text(face="bold", size = 12),
         axis.title.y = element_text(face="bold", size = 12),
         legend.title = element_text(face="bold", size = 10))
+```
+
+\newpage
+
+```{r}
+# log rank test
 survdiff(Y ~ factor(grp), data=df)
 ```
 
@@ -103,18 +142,67 @@ The first graph shows the Kaplan-Meier survival curve for the entire data set. w
 
 The second graph shows the Kaplan-Meier survival curve stratified by treatment group. The curve for combination therapy is above the curve for patch only, indicating a longer cessation experience for the former. In other words, the patch only group had a shorter cessation time at every time point than the combination therapy. The median survival time for the combination group is 110 days, while the patch only group is 29. The code below the graph implements a log rank test on treatment group. This is a test to see if there is a significant difference in survival experience between the two groups. The null hypothesis is that there is no difference between survival curves. The test statistic is significant with a p-value of 0.009, so we reject the null hypothesis and conclude that there is a significant difference in the survival experience of the two treatment groups. 
 
-# Models
+\newpage
+# Cox Proportional Hazard Model
 
+Now to fit a Cox proportional hazard (PH) model to the data. The Cox PH model is a popular survival model that is comprised of a time-dependent baseline hazard that is unspecified and an exponential function of a linear combination of covariates that is time-independent. The baseline hazard is not estimated or specified by parameter values which makes the Cox PH model semi-parametric. This model is popular because it has
+been shown to provide a robust approximation of survival experience when the proportional hazard assumption is nearly met. The proportional hazard assumption states that the hazard ratio between any two individuals is constant across time.
+
+I fit multiple models and performed likelihood ratio tests to determine significant features. The result is a model with treatment group, age, and employment status as covariates to explain time until relapse. The output of the model can be seen below.
+
+```{r}
+# cox ph model
+cph_model = coxph(Y ~ grp + age + employment, data=df)
+summary(cph_model)
+```
+
+\newpage
 # Results
 
-# Assumptions/Model Fit
+The hazard ratios for the Cox PH model are below.
 
+```{r}
+# hazard ratios
+exp(cph_model$coefficients)
+```
+
+We can interpret the regression coefficients as the hazard ratio, or the hazard for one individual divided by the hazard of another individual. For example, if we compare two individuals that have the same covariate pattern but are in two different treatment groups, the ratio of their hazards will reduce to the exponential of the coefficient associated with the treatment variable. Thus, in our case, the coefficient for treatment group is 0.61153 and the exponential of this is 1.8433. This means that the hazard for the patch only group is 1.8433 times the hazard for the combination group, controlling for age and employment status. In other words, a patch only subject who has not relapsed by a certain time has about 1.8 times the chance of relapsing at the next point in time compared to someone in the combination group. As @spruance2004 note, this corresponds to about a 64% chance of the patch only group relapsing first. The hazard ratio for a year increase in age is about 0.97. Similarly, the hazard ratio associated with other employment status vs. full-time is 1.88, and the hazard ratio associated with part-time vs. full-time is 2.10. 
+
+In summary, the model suggests that combination therapy, as opposed to just patch only, prolongs time until relapse. Also, increases in age and having a full-time job status, relative to part-time and other, are associated with longer cessation time.
+
+\newpage
+# Assumptions
+
+The central assumption of the Cox PH model is that the hazard ratio is constant across time, or the hazards of any two individuals are proportional across time. If this assumption is violated, the model is invalid. We can assess the proportional hazard assumption with a statistical test. As @kleinbaum2012survival state, the test checks the correlation between the Schoenfeld residuals and survival time. The null hypothesis is a correlation of 0, which supports the proportional hazards assumption. The output of the test is below. The p-values for each covariate are not significant and the global test for the entire model is not significant. This means we fail to reject the null hypothesis that the proportional hazards assumption is met. In other words, the proportional hazards assumption appears to be valid.
+
+```{r}
+# ph test
+cox.zph(cph_model, transform=rank)
+```
+
+\newpage
+# Prediction and Survival Curves
+
+For any covariate pattern, or individual, we can display the Cox-adjusted survival curve. Say we are interested in an individual in the patch only group with mean age and full-time employment. Their adjusted survival curve can be seen below. We can say that the median cessation time for someone with this covariate pattern is just over 50 days.
+
+```{r}
+# adjusted survival curve
+pattern1 = data.frame(grp='patchOnly', age=mean(df$age), employment='ft')
+autoplot(survfit(cph_model, newdata=pattern1)) + 
+  labs(x = "\n Cessation Time (Days) ", y = "Survival Probabilities \n", 
+       title = "Adjusted survival for \n grp=patchOnly, age=mean(age), employment=ft \n") + 
+  theme(plot.title = element_text(hjust = 0.5), 
+        axis.title.x = element_text(face="bold", size = 12),
+        axis.title.y = element_text(face="bold", size = 12),
+        legend.title = element_text(face="bold", size = 10))
+```
+
+\newpage
 # Conclusion
+
+This analysis considered data from a randomized clinical trial on the effects of two treatments on smoking cessation, or time until relapse, among medically ill smokers. The results of my analysis indicate that triple combination therapy of nicotine patch, nicotine oral inhaler, and bupropion is more effective in extending cessation time than patch only. More precisely, there is about a 64% chance of the patch only group relapsing first, controlling for age and employment status.
 
 \newpage
 # References
 
 <div id="refs"></div>
-
-\newpage
-# Appendix
